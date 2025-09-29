@@ -1,3 +1,4 @@
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_shopping_list_app/data/categories.dart';
 import 'package:flutter_shopping_list_app/models/category.dart';
