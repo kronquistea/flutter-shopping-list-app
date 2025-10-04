@@ -30,45 +30,51 @@ class _GroceryListState extends State<GroceryList> {
       'shopping-list.json',
     );
 
-    final response = await http.get(url);
+    try {
+      final response = await http.get(url);
 
-    if (response.statusCode >= 400) {
-      setState(() {
-        error = 'Failed to fetch data. Please try again later!';
-      });
-    }
+      if (response.statusCode >= 400) {
+        setState(() {
+          error = 'Failed to fetch data. Please try again later.';
+        });
+      }
 
-    if (response.body == 'null') {
+      if (response.body == 'null') {
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      final Map<String, dynamic> listData = jsonDecode(
+        response.body,
+      );
+      final List<GroceryItem> loadedItems = [];
+      for (final item in listData.entries) {
+        final category = categories.entries
+            .firstWhere(
+              (categoryItem) =>
+                  categoryItem.value.title == item.value['category'],
+            )
+            .value;
+        loadedItems.add(
+          GroceryItem(
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: category,
+          ),
+        );
+      }
       setState(() {
+        _groceryItems = loadedItems;
         isLoading = false;
       });
-      return;
+    } catch (err) {
+      setState(() {
+        error = 'Something went wrong. Please try again later!';
+      });
     }
-
-    final Map<String, dynamic> listData = jsonDecode(
-      response.body,
-    );
-    final List<GroceryItem> loadedItems = [];
-    for (final item in listData.entries) {
-      final category = categories.entries
-          .firstWhere(
-            (categoryItem) =>
-                categoryItem.value.title == item.value['category'],
-          )
-          .value;
-      loadedItems.add(
-        GroceryItem(
-          id: item.key,
-          name: item.value['name'],
-          quantity: item.value['quantity'],
-          category: category,
-        ),
-      );
-    }
-    setState(() {
-      _groceryItems = loadedItems;
-      isLoading = false;
-    });
   }
 
   void _addItem() async {
@@ -88,6 +94,7 @@ class _GroceryListState extends State<GroceryList> {
   }
 
   void _removeItem(GroceryItem item) async {
+    isLoading = true;
     final index = _groceryItems.indexOf(item);
     setState(() {
       _groceryItems.remove(item);
@@ -97,15 +104,19 @@ class _GroceryListState extends State<GroceryList> {
       'shopping-list/${item.id}.json',
     );
 
-    final response = await http.delete(url);
-    if (response.statusCode >= 400) {
+    try {
+      final response = await http.delete(url);
+      if (response.statusCode >= 400) {
+        error = 'Failed to delete the item. Please try again later!';
+      }
+    } catch (err) {
       if (mounted) {
         await showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Oops!'),
             content: const Text(
-              'There was an error deleting this item! Try again later.',
+              'Something went wrong! Try again later.',
             ),
             actions: [
               TextButton(
@@ -121,6 +132,9 @@ class _GroceryListState extends State<GroceryList> {
         _groceryItems.insert(index, item);
       });
     }
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override
