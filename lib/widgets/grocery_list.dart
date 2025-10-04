@@ -29,12 +29,20 @@ class _GroceryListState extends State<GroceryList> {
       'flutter-shopping-list-ap-aa48b-default-rtdb.firebaseio.com',
       'shopping-list.json',
     );
+
     final response = await http.get(url);
 
     if (response.statusCode >= 400) {
       setState(() {
         error = 'Failed to fetch data. Please try again later!';
       });
+    }
+
+    if (response.body == 'null') {
+      setState(() {
+        isLoading = false;
+      });
+      return;
     }
 
     final Map<String, dynamic> listData = jsonDecode(
